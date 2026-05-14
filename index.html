@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carnet des Herbes et des Passages — Ida Mae Crane</title>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Nothing+You+Could+Do&family=Kalam:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --paper: #F5EDD8;
+    --paper-dark: #EEE0C0;
+    --ink: #2C1810;
+    --ink-light: #5C3A22;
+    --ink-faint: #8A6A48;
+    --border: #C4AE88;
+    --gold: #9A7A50;
+    --green: #4A6B3A;
+    --red: #8B3A2A;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: #1A1008;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'IM Fell English', Georgia, serif;
+  }
+
+  #scene {
+    perspective: 2000px;
+    width: 100vw; height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+
+  #book-wrapper {
+    position: relative;
+    width: 860px; height: 620px;
+    transform-style: preserve-3d;
+  }
+
+  #cover-container {
+    position: absolute;
+    width: 430px; height: 620px;
+    left: 215px;
+    transform-origin: left center;
+    transform-style: preserve-3d;
+    z-index: 100;
+    cursor: pointer;
+    transition: filter 0.3s;
+  }
+  #cover-container:hover { filter: brightness(1.06); }
+
+  .cover-face {
+    position: absolute; inset: 0;
+    backface-visibility: hidden;
+    border-radius: 2px 5px 5px 2px;
+    overflow: hidden;
+  }
+  .cover-front {
+    background: #F5EDD8;
+    border: 1px solid #9A7A50;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.8), inset -3px 0 10px rgba(0,0,0,0.08);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 32px 28px;
+  }
+  .cover-back {
+    transform: rotateY(180deg);
+    background: var(--paper);
+    border: 1px solid #9A7A50;
+    box-shadow: inset 8px 0 24px rgba(0,0,0,0.10);
+    overflow: hidden;
+  }
+  /* la face arrière de la couverture porte le contenu de la page de gauche :
+     en pivotant, elle « devient » la première page, comme un vrai livre */
+  #cover-back-content { width: 100%; height: 100%; }
+
+  .cover-click-hint {
+    position: absolute; bottom: -34px; left: 50%; transform: translateX(-50%);
+    font-family: 'IM Fell English SC', serif; font-size: 10px;
+    color: #9A7A50; letter-spacing: 2px;
+    animation: pulse-hint 2.5s ease-in-out infinite;
+    white-space: nowrap;
+  }
+  @keyframes pulse-hint { 0%,100%{ opacity:0.3; } 50%{ opacity:0.9; } }
+
+  .cover-spine {
+    position: absolute;
+    left: -14px; top: 0; width: 14px; height: 620px;
+    background: linear-gradient(90deg, #7A5A38, #9A7A50, #7A5A38);
+    border-left: 1px solid #6A4A28;
+    border-right: 1px solid #C4AE88;
+    transform: rotateY(-90deg) translateX(-7px);
+    transform-origin: right center;
+  }
+
+  #pages-stack {
+    position: absolute;
+    left: 50%; top: 0;
+    width: 430px; height: 620px;
+    background: linear-gradient(90deg, #d8c8a8, #F5EDD8 10%, #ede0c4 90%, #c8b890);
+    border-radius: 0 5px 5px 0;
+    box-shadow: 6px 4px 20px rgba(0,0,0,0.35);
+    overflow: hidden;
+    display: none;
+  }
+
+  #left-page {
+    position: absolute;
+    left: 0; top: 0;
+    width: 430px; height: 620px;
+    background: var(--paper);
+    border-right: 1px solid #C4AE88;
+    overflow: hidden;
+    box-shadow: inset -6px 0 12px rgba(0,0,0,0.04);
+    display: none;
+  }
+
+  #flip-container {
+    position: absolute;
+    left: 50%; top: 0;
+    width: 430px; height: 620px;
+    transform-origin: left center;
+    transform-style: preserve-3d;
+    transform: rotateY(0deg);
+    transition: transform 0.9s cubic-bezier(0.645, 0.045, 0.355, 1.000);
+    z-index: 10;
+    pointer-events: none;
+    display: none;
+  }
+
+  .flip-face {
+    position: absolute; inset: 0;
+    backface-visibility: hidden;
+    overflow: hidden;
+  }
+  #flip-front { background: var(--paper); box-shadow: inset -4px 0 12px rgba(0,0,0,0.05); }
+  #flip-back  { background: var(--paper); transform: rotateY(180deg); box-shadow: inset 4px 0 12px rgba(0,0,0,0.05); }
+
+  .page-content {
+    width: 100%; height: 100%;
+    padding: 28px 34px 22px;
+    position: relative;
+    display: flex; flex-direction: column;
+    background: var(--paper);
+    overflow: hidden;
+  }
+
+  .page-num {
+    position: absolute; bottom: 10px;
+    font-family: 'IM Fell English SC', serif; font-size: 9px;
+    color: var(--gold); letter-spacing: 1px;
+  }
+  .page-num.left  { left: 26px; }
+  .page-num.right { right: 26px; }
+
+  /* ——— TYPOGRAPHIE PAGES ——— */
+  .sec-title {
+    font-family: 'IM Fell English SC', serif;
+    font-size: 11px; letter-spacing: 0.14em;
+    color: var(--ink);
+    text-align: center;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .plant-name {
+    font-family: 'IM Fell English SC', serif;
+    font-size: 16px; color: var(--ink);
+    margin-bottom: 2px;
+  }
+
+  .latin-name {
+    font-style: italic; font-size: 11px;
+    color: var(--green); font-weight: normal;
+    margin-bottom: 11px;
+  }
+
+  .body-text {
+    font-size: 11.5px; line-height: 1.78;
+    color: var(--ink); margin-bottom: 7px;
+    text-align: justify; hyphens: auto;
+  }
+  .body-text + .body-text { text-indent: 1.2em; }
+
+  .drop-cap::first-letter {
+    font-family: 'IM Fell English SC', serif;
+    font-size: 3.2rem;
+    float: left; line-height: 0.76;
+    margin: 0.06rem 0.4rem 0 0;
+    color: var(--ink-light);
+  }
+
+  .marginal {
+    font-family: 'Kalam', cursive;
+    font-size: 11px; color: var(--ink);
+    margin: 6px 0;
+    padding-left: 9px;
+    border-left: 2px solid #C8A878;
+    line-height: 1.52;
+  }
+
+  .prop-label {
+    display: block;
+    font-family: 'IM Fell English SC', serif;
+    font-size: 9px; letter-spacing: 0.14em;
+    color: var(--ink-light);
+    margin: 8px 0 3px;
+  }
+
+  .prop-text {
+    font-size: 10.5px; line-height: 1.72;
+    color: var(--ink); margin: 0 0 4px;
+    text-indent: 0 !important;
+  }
+
+  .warning {
+    font-style: italic; color: var(--red);
+    padding: 6px 10px;
+    border-left: 2px solid var(--red);
+    margin: 6px 0; font-size: 10px;
+    line-height: 1.62; text-indent: 0 !important;
+  }
+
+  .rite-block {
+    background: rgba(0,0,0,0.022);
+    border: 1px solid var(--border);
+    padding: 11px 14px;
+    margin: 8px 0;
+  }
+  .rite-block h4 {
+    font-family: 'IM Fell English SC', serif;
+    font-size: 9.5px; letter-spacing: 0.16em;
+    color: var(--red); margin-bottom: 4px;
+  }
+  .rite-intro {
+    font-style: italic; font-size: 9px;
+    color: var(--ink-faint); margin-bottom: 7px;
+    text-indent: 0 !important; line-height: 1.58;
+  }
+
+  .torn {
+    background: var(--paper-dark);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--border);
+    padding: 10px 13px 15px;
+    margin: 8px 0;
+    font-family: 'Kalam', cursive;
+    font-size: 11.5px; color: var(--ink);
+    line-height: 1.65; position: relative;
+  }
+  .torn::after {
+    content: '— [ pages arrachées — transmission incomplète ] —';
+    display: block; font-style: italic;
+    color: var(--gold); font-size: 8.5px;
+    margin-top: 7px; padding-top: 7px;
+    border-top: 1px dashed var(--border);
+    text-align: center; letter-spacing: 0.05em;
+  }
+
+  .law-item {
+    display: flex; gap: 8px;
+    margin-bottom: 8px; align-items: flex-start;
+  }
+  .law-num {
+    font-family: 'IM Fell English SC', serif;
+    font-size: 12px; color: var(--gold);
+    min-width: 18px; padding-top: 0.02rem; flex-shrink: 0;
+  }
+  .law-text {
+    font-size: 10.5px; line-height: 1.72; color: var(--ink);
+  }
+  .law-text.incomplete { font-style: italic; color: #7A5A40; }
+
+  .toc-row {
+    display: flex; justify-content: space-between;
+    align-items: baseline; padding: 3.5px 0;
+    border-bottom: 1px dotted var(--border);
+    font-size: 10.5px;
+  }
+  .toc-row:last-child { border-bottom: none; }
+  .toc-row.sub { padding-left: 10px; font-style: italic; font-size: 9.5px; color: #6A5040; }
+  .toc-page {
+    font-family: 'IM Fell English SC', serif;
+    font-size: 9px; color: var(--gold);
+    margin-left: 4px; flex-shrink: 0;
+  }
+
+  .illus-r {
+    float: right; margin: 0 0 8px 14px;
+    padding: 5px 5px 3px;
+    border: 1px solid var(--border);
+    background: rgba(245,237,216,0.5);
+  }
+  .illus-cap {
+    font-size: 8px; font-style: italic;
+    color: #7A5A40; text-align: center;
+    margin-top: 4px;
+    font-family: 'Kalam', cursive; line-height: 1.38;
+  }
+
+  .letter { font-family: 'Nothing You Could Do', cursive; font-size: 11.5px; line-height: 1.75; color: #1E3A6A; }
+  .letter p { font-family: 'Nothing You Could Do', cursive; font-size: 11.5px; text-align: left; text-indent: 0; margin-bottom: 6px; color: #1E3A6A; }
+  .letter em { color: #2A5090; }
+  .signature {
+    font-family: 'Nothing You Could Do', cursive; font-size: 13px;
+    color: #1E3A6A; text-align: right;
+    margin-top: 10px; line-height: 1.5;
+  }
+
+  .pf {
+    font-family: 'IM Fell English SC', serif;
+    font-size: 8px; color: #A08060; letter-spacing: 0.09em;
+    text-align: center; padding-top: 9px; margin-top: auto;
+    border-top: 1px solid var(--border);
+  }
+
+  .divider { text-align: center; color: var(--gold); margin: 8px 0; letter-spacing: 0.5rem; font-size: 10px; }
+
+  .clearfix::after { content:''; display:table; clear:both; }
+
+  /* ——— COVER ——— */
+  .cv-title {
+    font-family: 'IM Fell English SC', serif;
+    font-size: 20px; color: var(--ink);
+    letter-spacing: 0.03em; line-height: 1.3;
+    text-align: center; margin-bottom: 10px;
+  }
+  .cv-rule { width: 60px; height: 1px; background: var(--gold); margin: 10px auto; }
+  .cv-subtitle {
+    font-style: italic; font-size: 10.5px;
+    color: var(--ink-light); line-height: 1.65; text-align: center;
+  }
+  .cv-author {
+    font-family: 'IM Fell English SC', serif;
+    font-size: 12px; color: var(--ink-light);
+    letter-spacing: 0.07em; margin-top: 10px; text-align: center;
+  }
+  .cv-origin { font-size: 9.5px; font-style: italic; color: var(--ink-faint); text-align: center; }
+
+  .bordered-frame {
+    border: 1px solid var(--gold);
+    padding: 18px 16px; position: relative; width: 100%;
+  }
+  .cc { position:absolute; width:14px; height:14px; border-color:var(--gold); border-style:solid; }
+  .cc-tl { top:-1px; left:-1px; border-width:2px 0 0 2px; }
+  .cc-tr { top:-1px; right:-1px; border-width:2px 2px 0 0; }
+  .cc-bl { bottom:-1px; left:-1px; border-width:0 0 2px 2px; }
+  .cc-br { bottom:-1px; right:-1px; border-width:0 2px 2px 0; }
+
+  /* ——— NAV ——— */
+  #nav-prev, #nav-next {
+    position: fixed; top: 50%; transform: translateY(-50%);
+    background: rgba(26,16,8,0.25);
+    border: 1px solid #9A7A50;
+    color: #C4AE88;
+    width: 42px; height: 70px;
+    cursor: pointer; font-size: 22px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s; z-index: 1000;
+    font-family: serif; user-select: none;
+  }
+  #nav-prev { left: calc(50% - 450px); border-radius: 6px 0 0 6px; }
+  #nav-next { right: calc(50% - 450px); border-radius: 0 6px 6px 0; }
+  #nav-prev:hover, #nav-next:hover { background: rgba(26,16,8,0.55); color: #F5EDD8; }
+  #nav-prev.hidden, #nav-next.hidden { opacity:0; pointer-events:none; }
+
+  #page-indicator {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    font-family: 'IM Fell English SC', serif; font-size: 10px;
+    color: #9A7A50; letter-spacing: 2px;
+    white-space: nowrap; z-index: 1000;
+  }
+
+  #cover-container.opening {
+    animation: cover-open 1.35s cubic-bezier(0.46, 0.03, 0.30, 1) forwards;
+    pointer-events: none;
+  }
+  @keyframes cover-open {
+    0%   { transform: rotateY(0deg); }
+    100% { transform: rotateY(-178deg); }
+  }
+  #cover-container.opened {
+    transform: rotateY(-178deg);
+    pointer-events: none;
+  }
+
+  /* ombre de tranche renforcée pendant l'ouverture, pour la profondeur */
+  .cover-front { transition: box-shadow 0.4s; }
+  #cover-container.opening .cover-front {
+    box-shadow: 14px 0 40px rgba(0,0,0,0.55), inset -3px 0 10px rgba(0,0,0,0.08);
+  }
+
+  /* apparition en fondu de la moitié droite une fois la couverture ouverte */
+  #pages-stack.revealing, #flip-container.revealing {
+    animation: half-reveal 0.5s ease-out forwards;
+  }
+  @keyframes half-reveal {
+    0%   { opacity: 0; }
+    100% { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<div id="scene">
+  <div id="book-wrapper">
+
+    <div id="left-page">
+      <div class="page-content" id="left-content"></div>
+    </div>
+
+    <div id="pages-stack"><div id="pages-stack-content" class="page-content" style="background:var(--paper);"></div></div>
+
+    <div id="flip-container">
+      <div class="flip-face" id="flip-front">
+        <div class="page-content" id="flip-front-content"></div>
+      </div>
+      <div class="flip-face" id="flip-back">
+        <div class="page-content" id="flip-back-content"></div>
+      </div>
+    </div>
+
+    <!-- COVER -->
+    <div id="cover-container">
+      <div class="cover-face cover-front">
+
+        <svg width="100%" viewBox="0 0 280 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="margin-bottom:10px;opacity:0.7">
+          <g stroke="#9A7A50" stroke-width="0.8" fill="none">
+            <line x1="0" y1="20" x2="95" y2="20"/><line x1="185" y1="20" x2="280" y2="20"/>
+            <path d="M95 20 Q110 10 124 14 Q116 20 95 20"/>
+            <path d="M95 20 Q110 30 124 26 Q116 20 95 20"/>
+            <path d="M112 19 Q124 9 136 12 Q130 19 112 19"/>
+            <path d="M112 21 Q124 31 136 28 Q130 21 112 21"/>
+            <line x1="136" y1="7" x2="140" y2="20"/><line x1="140" y1="20" x2="144" y2="7"/>
+            <circle cx="140" cy="5" r="3" fill="#9A7A50"/>
+            <path d="M185 20 Q170 10 156 14 Q164 20 185 20"/>
+            <path d="M185 20 Q170 30 156 26 Q164 20 185 20"/>
+            <path d="M168 19 Q156 9 144 12 Q150 19 168 19"/>
+            <path d="M168 21 Q156 31 144 28 Q150 21 168 21"/>
+          </g>
+        </svg>
+
+        <div class="bordered-frame">
+          <span class="cc cc-tl"></span><span class="cc cc-tr"></span>
+          <span class="cc cc-bl"></span><span class="cc cc-br"></span>
+
+          <div class="cv-title">Carnet des Herbes<br>et des Passages</div>
+          <div class="cv-rule"></div>
+          <div class="cv-subtitle">Recueil de pratiques botaniques populaires<br>des Appalaches · à l'usage de la famille</div>
+
+          <svg width="96" height="122" viewBox="0 0 120 148" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="display:block;margin:14px auto;opacity:0.75">
+            <g stroke="#4A6B3A" stroke-width="1" fill="none">
+              <path d="M60 144 Q58 115 56 90 Q54 60 60 30" stroke="#8B3A2A" stroke-width="1.5"/>
+              <path d="M60 30 Q60 18 62 8" stroke="#4A6B3A" stroke-width="1.5"/>
+              <path d="M61 42 Q38 24 22 32 Q18 46 30 52 Q44 54 61 42" fill="rgba(26,74,32,0.17)"/>
+              <path d="M61 42 Q44 20 46 6 Q55 8 63 22 Q63 36 61 42" fill="rgba(26,74,32,0.17)"/>
+              <path d="M61 42 Q78 20 76 6 Q85 8 92 22 Q87 36 61 42" fill="rgba(26,74,32,0.17)"/>
+              <path d="M61 42 Q84 24 98 32 Q102 46 90 52 Q76 54 61 42" fill="rgba(26,74,32,0.17)"/>
+              <path d="M61 42 Q42 38 28 42" stroke-width="0.55"/>
+              <path d="M61 42 Q52 28 50 14" stroke-width="0.55"/>
+              <path d="M61 42 Q61 26 62 8" stroke-width="0.55"/>
+              <path d="M61 42 Q70 28 74 14" stroke-width="0.55"/>
+              <path d="M61 42 Q80 38 92 42" stroke-width="0.55"/>
+              <path d="M57 85 Q40 76 32 83 Q33 94 46 94 Q54 92 57 85" fill="rgba(26,74,32,0.13)"/>
+              <path d="M57 85 Q68 76 75 83 Q74 94 62 94 Q57 92 57 85" fill="rgba(26,74,32,0.13)"/>
+              <g transform="translate(62,8)">
+                <circle cx="0" cy="0" r="7" fill="rgba(255,250,235,0.92)" stroke="#C8A870" stroke-width="0.8"/>
+                <ellipse cx="0" cy="-5.5" rx="2.5" ry="4.5" fill="rgba(255,250,232,0.88)" stroke="#C8A870" stroke-width="0.65"/>
+                <ellipse cx="0" cy="-5.5" rx="2.5" ry="4.5" fill="rgba(255,250,232,0.88)" stroke="#C8A870" stroke-width="0.65" transform="rotate(72)"/>
+                <ellipse cx="0" cy="-5.5" rx="2.5" ry="4.5" fill="rgba(255,250,232,0.88)" stroke="#C8A870" stroke-width="0.65" transform="rotate(144)"/>
+                <ellipse cx="0" cy="-5.5" rx="2.5" ry="4.5" fill="rgba(255,250,232,0.88)" stroke="#C8A870" stroke-width="0.65" transform="rotate(216)"/>
+                <ellipse cx="0" cy="-5.5" rx="2.5" ry="4.5" fill="rgba(255,250,232,0.88)" stroke="#C8A870" stroke-width="0.65" transform="rotate(288)"/>
+                <circle cx="0" cy="0" r="3" fill="rgba(212,168,48,0.9)" stroke="#A08020" stroke-width="0.5"/>
+              </g>
+              <path d="M60 144 Q53 136 46 140" stroke="#8B3A2A" stroke-width="1.1"/>
+              <path d="M60 144 Q67 136 74 140" stroke="#8B3A2A" stroke-width="1.1"/>
+            </g>
+          </svg>
+
+          <div class="cv-author">Ida Mae Crane</div>
+          <div class="cv-origin">Biloxi, Mississippi · 1951 — 1968</div>
+        </div>
+
+        <svg width="100%" viewBox="0 0 280 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="margin-top:10px;opacity:0.7">
+          <g stroke="#9A7A50" stroke-width="0.8" fill="none">
+            <line x1="0" y1="14" x2="104" y2="14"/><line x1="176" y1="14" x2="280" y2="14"/>
+            <path d="M104 14 Q122 6 136 10 Q140 14 136 18 Q122 22 104 14"/>
+            <path d="M176 14 Q158 6 144 10 Q140 14 144 18 Q158 22 176 14"/>
+            <circle cx="140" cy="14" r="4" fill="none"/>
+            <circle cx="140" cy="14" r="1.5" fill="#9A7A50"/>
+          </g>
+        </svg>
+
+        <div style="font-family:'IM Fell English SC',serif;font-size:6px;color:#A08060;text-align:center;margin-top:6px;letter-spacing:0.08em;">Usage privé · Transmission familiale · Ne pas reproduire</div>
+      </div>
+
+      <div class="cover-face cover-back">
+        <div class="page-content" id="cover-back-content"></div>
+      </div>
+
+      <div class="cover-spine"></div>
+      <div class="cover-click-hint">· Ouvrir le carnet ·</div>
+    </div>
+
+  </div>
+</div>
+<button id="nav-prev" onclick="flipPrev()">&#8249;</button>
+<button id="nav-next" onclick="flipNext()">&#8250;</button>
+<div id="page-indicator"></div>
+
+<script>
+const spreads = [
+
+  /* ── SPREAD 1 : Table des matières + Avant-propos ── */
+  {
+    left: `<div class="sec-title">Contenu de ce carnet</div>
+<div style="margin-bottom:10px">
+  <div class="toc-row"><span>Avant-propos</span><span class="toc-page">i</span></div>
+  <div class="toc-row"><span>I. Les Herbes du Monde</span><span class="toc-page">1</span></div>
+  <div class="toc-row sub"><span>Racine de Sang <em>(Sanguinaria canadensis)</em></span><span class="toc-page">—</span></div>
+  <div class="toc-row sub"><span>Gingembre Sauvage <em>(Asarum canadense)</em></span><span class="toc-page">—</span></div>
+  <div class="toc-row"><span>II. Les Herbes du Seuil</span><span class="toc-page">7</span></div>
+  <div class="toc-row sub"><span>Herba Recursus — L'Herbe du Retour</span><span class="toc-page">—</span></div>
+  <div class="toc-row sub"><span>Le Charbon de Pierre Noire</span><span class="toc-page">—</span></div>
+  <div class="toc-row"><span>III. Les Rites</span><span class="toc-page">15</span></div>
+  <div class="toc-row sub"><span>Rite n°1 — Résonance Simple</span><span class="toc-page">—</span></div>
+  <div class="toc-row sub"><span>Rite n°2 — Contact à Travers le Seuil</span><span class="toc-page">—</span></div>
+  <div class="toc-row sub"><span>Rite n°3 — Le Rite de Rappel (fragment)</span><span class="toc-page">—</span></div>
+  <div class="toc-row"><span>IV. Les Lois du Passage</span><span class="toc-page">25</span></div>
+  <div class="toc-row"><span>Le Signe de Résonance</span><span class="toc-page">29</span></div>
+  <div class="toc-row"><span style="font-style:italic">Note à Elias</span><span class="toc-page">fin</span></div>
+</div>
+<div class="pf">Carnet des Herbes et des Passages — Ida Mae Crane · Table</div>`,
+
+    right: `<div class="sec-title">Avant-propos</div>
+<p class="body-text drop-cap">Ma mère me l'a appris avant ses mains. Pas avec des mots. Avec le temps. Le bon moment pour cueillir, le bon moment pour se taire, le bon moment pour demander. Ces pratiques-là n'ont pas besoin de s'appeler quelque chose d'officiel.</p>
+<p class="body-text">Je mets ici ce que je sais avec certitude. Ce que je suppose, je le dis. Ce que je ne comprends pas encore, je laisse la place — un espace blanc dans la marge, une ligne vide sur la page. Ces espaces ne sont pas des erreurs. Ce sont des questions ouvertes.</p>
+<p class="body-text">Une seule loi vaut pour tout ce qui suit, et je la donne d'emblée : <em>les plantes se souviennent de ce qu'on leur demande.</em> Pas comme un homme se souvient. Autrement. Plus profond. Plus long.</p>
+<div class="marginal">Ce n'est pas une métaphore. J'ai mis quinze ans à comprendre que c'était une description précise.</div>
+<p class="body-text">Ce carnet ne s'adresse pas aux botanistes. Il s'adresse à quelqu'un qui a déjà senti, au moins une fois dans sa vie, qu'un lieu se souvient. Que certains couloirs ont de la mémoire. Que certaines nuits sont différentes des autres sans qu'on sache pourquoi.</p>
+<p class="body-text">Si cette phrase ne résonne pas, ce carnet n'est pas pour toi. Ce n'est pas un jugement. C'est simplement que le reste ne te sera d'aucune utilité.</p>
+<p class="body-text">Ce carnet appartient à Elias quand je n'en aurai plus besoin.</p>
+<div class="signature-ida" style="font-family:'Kalam',cursive;font-size:13px;color:#2C1810;text-align:right;margin-top:10px;line-height:1.6;">— Ida Mae Crane, Biloxi, printemps 1951</div>
+<div class="pf">Carnet des Herbes et des Passages — Ida Mae Crane · i</div>`
+  },
+
+  /* ── SPREAD 2 : Herbes du Monde ── */
+  {
+    left: `<div class="sec-title">I. Les Herbes du Monde</div>
+<p style="text-align:center;font-style:italic;font-size:13px;color:#7A5A40;margin-bottom:8px;text-indent:0" class="body-text">Plantes médicinales ordinaires des Appalaches</p>
+<div class="plant-name">Racine de Sang</div>
+<div class="latin-name">Sanguinaria canadensis · Bloodroot</div>
+<div class="clearfix">
+  <div class="illus-r" style="width:80px">
+    <svg width="68" height="82" viewBox="0 0 110 134" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <g stroke="#4A6B3A" stroke-width="0.9" fill="none">
+        <path d="M55 130 Q55 92 55 68" stroke-width="1.3"/>
+        <path d="M55 68 Q30 52 14 58 Q22 76 55 68" fill="rgba(74,107,58,0.13)"/>
+        <path d="M55 68 Q80 52 96 58 Q88 76 55 68" fill="rgba(74,107,58,0.13)"/>
+        <path d="M55 68 Q40 48 44 30 Q55 40 55 68" fill="rgba(74,107,58,0.13)"/>
+        <path d="M55 68 Q70 48 66 30 Q55 40 55 68" fill="rgba(74,107,58,0.13)"/>
+        <path d="M55 68 Q36 70 28 84 Q40 80 55 68" fill="rgba(74,107,58,0.13)"/>
+        <path d="M55 68 Q74 70 82 84 Q70 80 55 68" fill="rgba(74,107,58,0.13)"/>
+        <circle cx="55" cy="22" r="14" fill="rgba(255,252,242,0.92)" stroke="#C8B090" stroke-width="0.7"/>
+        <circle cx="55" cy="22" r="4" fill="rgba(210,164,40,0.9)" stroke="#A07818" stroke-width="0.5"/>
+      </g>
+      <path d="M55 130 Q48 122 42 126 M55 130 Q62 122 68 126" stroke="#8B3A2A" stroke-width="1.2" fill="none"/>
+    </svg>
+    <div class="illus-cap">S. canadensis<br><em>d'après récolte, 1942</em></div>
+  </div>
+  <p class="body-text drop-cap" style="font-size:12.5px">Feuille unique enroulée autour de la tige florale au printemps. Fleur à huit à douze pétales blancs, éphémère — quelques jours avant de tomber. Racine orangée produisant un latex écarlate caractéristique.</p>
+  <span class="prop-label">Usages</span>
+  <p class="prop-text" style="font-size:12px">Décoction de racine pour les affections pulmonaires persistantes. Usage externe en cataplasme pour les infections cutanées résistantes. Dans la tradition de ma mère, une petite dose en infusion légère clarifiait l'esprit avant une décision difficile.</p>
+  <span class="prop-label">Récolte</span>
+  <p class="prop-text" style="font-size:12px">Racine en automne, après la dormance complète. Laisser les fleurs de printemps — permettre aux graines de se disperser.</p>
+</div>
+<p class="warning" style="font-size:13px">Le latex de la racine est corrosif à forte dose — j'ai vu un homme en perdre une dent. Usage interne : petites doses uniquement, jamais prolongé.</p>
+<div class="pf">Carnet des Herbes et des Passages — Ida Mae Crane · 1–3</div>`,
+
+    right: `<div class="sec-title">I. Les Herbes du Monde <em style="font-size:12.5px;letter-spacing:0">(suite)</em></div>
+<div class="divider">✦</div>
+<div class="plant-name">Gingembre Sauvage</div>
+<div class="latin-name">Asarum canadense · Wild Ginger</div>
+<p class="body-text drop-cap">Plante basse des sous-bois humides. Deux feuilles en cœur portées sur des pétioles distincts, veloutées au toucher, vert profond brillant. La fleur minuscule se cache au ras du sol entre les deux pétioles — la plupart des gens passent sans la voir jamais.</p>
+<span class="prop-label">Usages médicinaux</span>
+<p class="prop-text">Rhizome séché et réduit en poudre : excellent pour les troubles digestifs et les crampes abdominales. Infusion légère contre les états fébriles. Pour les maux de tête d'origine nerveuse : une infusion le soir, deux nuits de suite, pas plus.</p>
+<span class="prop-label">Propriété de stabilisation</span>
+<p class="prop-text">Dans les traditions de la montagne, le gingembre sauvage est dit « ancré dans la terre ». Il aide à rester où on est quand on a envie de partir. Je l'utilise comme composant mineur dans certaines préparations de seuil. C'est une herbe du monde ordinaire qui frôle le seuil sans le franchir.</p>
+<div class="marginal">Toujours en combinaison, jamais seul dans les préparations de seuil. Il donne du poids sans ouvrir de porte.</div>
+<span class="prop-label">Récolte</span>
+<p class="prop-text">Rhizome au printemps ou en automne. Rincer soigneusement — la terre des sous-bois humides contient des champignons indésirables qui pourraient interférer.</p>
+<div class="pf">Carnet des Herbes et des Passages — Ida Mae Crane · 4–6</div>`
+  },
+
+  /* ── SPREAD 3 : Herba Recursus ── */
+  {
+    left: `<div class="sec-title">II. Les Herbes du Seuil</div>
+<p style="font-style:italic;font-size:13px;color:#7A5A40;margin-bottom:8px;line-height:1.6;text-indent:0" class="body-text">Ces plantes ne sont pas dans les livres de médecine ordinaire. Ce sont des plantes de passage.</p>
+<div class="plant-name">Herba Recursus</div>
+<div class="latin-name">L'Herbe du Retour · Classification officielle : inconnue</div>
+<div class="clearfix">
+  <div class="illus-r" style="width:88px">
+    <svg width="70" height="100" viewBox="0 0 148 210" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <g stroke="#4A6B3A" stroke-width="1" fill="none">
+        <path d="M72 205 Q70 172 68 145 Q66 112 70 82" stroke="#8B3A2A" stroke-width="1.6"/>
+        <path d="M70 82 Q70 55 72 25 Q73 16 74 8" stroke="#4A6B3A" stroke-width="1.5"/>
+        <path d="M72 58 Q46 38 28 46 Q22 60 36 68 Q52 70 72 58" fill="rgba(22,65,26,0.16)"/>
+        <path d="M72 58 Q54 32 56 14 Q66 14 75 30 Q74 48 72 58" fill="rgba(22,65,26,0.16)"/>
+        <path d="M72 58 Q92 32 90 14 Q100 16 108 30 Q102 46 72 58" fill="rgba(22,65,26,0.16)"/>
+        <path d="M72 58 Q98 38 114 46 Q120 60 106 68 Q90 70 72 58" fill="rgba(22,65,26,0.16)"/>
+        <path d="M72 58 Q50 52 34 56" stroke-width="0.65"/>
+        <path d="M72 58 Q62 40 58 18" stroke-width="0.65"/>
+        <path d="M72 58 Q82 40 90 18" stroke-width="0.65"/>
+        <path d="M72 58 Q94 52 106 56" stroke-width="0.65"/>
+        <path d="M68 112 Q48 102 38 110 Q40 122 52 122 Q62 120 68 112" fill="rgba(22,65,26,0.13)"/>
+        <path d="M68 112 Q80 102 88 110 Q86 122 74 122 Q68 120 68 112" fill="rgba(22,65,26,0.13)"/>
+        <g transform="translate(74,8)">
+          <ellipse cx="0" cy="-6" rx="2.8" ry="5" fill="rgba(255,252,235,0.9)" stroke="#C8A868" stroke-width="0.7"/>
+          <ellipse cx="0" cy="-6" rx="2.8" ry="5" fill="rgba(255,252,235,0.9)" stroke="#C8A868" stroke-width="0.7" transform="rotate(72)"/>
+          <ellipse cx="0" cy="-6" rx="2.8" ry="5" fill="rgba(255,252,235,0.9)" stroke="#C8A868" stroke-width="0.7" transform="rotate(144)"/>
+          <ellipse cx="0" cy="-6" rx="2.8" ry="5" fill="rgba(255,252,235,0.9)" stroke="#C8A868" stroke-width="0.7" transform="rotate(216)"/>
+          <ellipse cx="0" cy="-6" rx="2.8" ry="5" fill="rgba(255,252,235,0.9)" stroke="#C8A868" stroke-width="0.7" transform="rotate(288)"/>
+          <circle cx="0" cy="0" r="3.2" fill="rgba(208,160,42,0.92)" stroke="#988018" stroke-width="0.5"/>
+        </g>
+        <path d="M72 205 Q64 195 58 200" stroke="#8B3A2A" stroke-width="1.2"/>
+        <path d="M72 205 Q80 195 86 200" stroke="#8B3A2A" stroke-width="1.2"/>
+      </g>
+      <text x="90" y="42" font-family="'IM Fell English',Georgia,serif" font-size="7" fill="#4A6B3A" font-style="italic">5 lobes</text>
+      <text x="40" y="205" font-family="'IM Fell English',Georgia,serif" font-size="7" fill="#8B3A2A" font-style="italic">base rouge</text>
+    </svg>
+    <div class="illus-cap">Herba Recursus<br><em>Clairière nord,<br>Rockwell Island<br>mars 1934, I.M.C.</em></div>
+  </div>
+  <p class="body-text drop-cap" style="font-size:12.5px;text-indent:0">Je l'ai trouvée pour la première fois en mars 1934, dans la clairière nord de l'île que les gens du comté appellent Rockwell. J'avais douze ans et je suivais ma mère. Elle s'est arrêtée devant et m'a dit : <em>« Celle-là, on la regarde avant de la toucher. »</em></p>
+  <p class="body-text" style="font-size:12.5px">Cette plante ne pousse nulle part ailleurs que je sache. Les botanistes qui passent ici l'ont cataloguée sous plusieurs noms incorrects. Ils ne restent jamais assez longtemps pour comprendre ce qu'elle est.</p>
+  <span class="prop-label">Description physique</span>
+  <p class="prop-text" style="font-size:12px">Tige de 20 à 30 cm. <em>Tige légèrement rougeâtre à la base</em> — comme si le sol saignait dans la plante. Feuilles palmées, cinq lobes arrondis. En mars uniquement : petites fleurs blanc crème, cinq pétales.</p>
+  <span class="prop-label">Odeur</span>
+  <p class="prop-text" style="font-size:12px">Presque nulle le jour. La nuit, une légère odeur de terre mouillée et de quelque chose d'autre — quelque chose qu'on ne sait pas nommer.</p>
+</div>
+<div class="pf">Carnet des Herbes et des Passages — Ida Mae Crane · 7–9</div>`,
+
+    right: `<div class="sec-title">II. Les Herbes du Seuil <em style="font-size:12.5px;letter-spacing:0">(suite)</em></div>
+<span class="prop-label">Propriété principale</span>
+<p class="prop-text">Cette plante est un pont. Pas une métaphore. Un pont. Elle amplifie ce qui existe déjà entre deux endroits — ou deux états. Seule, elle ne fait rien de notable. Combinée avec une intention claire et un lieu qui possède de la mémoire, elle ouvre ce que les murs et le temps ferment habituellement.</p>
+<div class="marginal">Ma mère disait : « Elle ne crée pas le chemin. Elle révèle que le chemin a toujours été là. » J'ai mis vingt ans à comprendre la différence. Elle est importante.</div>
+<span class="prop-label">Récolte — règles absolues</span>
+<p class="prop-text">Mars uniquement. Au lever du soleil ou après le coucher. <em>Jamais en plein jour</em> — la lumière directe neutralise la propriété de seuil, il ne reste qu'une plante ordinaire. Couper proprement à 5 centimètres du sol avec un couteau propre. Ne jamais déraciner.</p>
+<span class="prop-label">Séchage et conservation</span>
+<p class="prop-text">Séchage à l'ombre, trois semaines minimum. Ne jamais sécher au soleil. Conserver à l'abri de la lumière directe, dans un contenant de terre ou de bois. Une plante séchée correctement reste efficace plusieurs années.</p>
+<p class="warning">Cette plante ne pardonne pas l'usage à la légère. Ceux qui la prennent sans intention précise rapportent des rêves dont ils ne reviennent pas tout à fait. J'en ai été témoin une fois, en 1947. C'est suffisant comme avertissement.</p>
+<div class="divider">✦</div>
+<div class="plant-name" style="font-size:13px">Le Charbon de Pierre Noire</div>
+<div class="latin-name" style="margin-bottom:5px">Composant secondaire — non botanique</div>
+<p class="prop-text">Pierre noire des rives de montagne, brûlée à haute température et réduite en poudre fine. Elle agit comme stabilisateur dans toute décoction à base d'Herba Recursus. Sans elle, la décoction est imprévisible. Avec elle, les effets durent entre trois et sept jours selon l'intensité mémorielle du lieu.</p>
+<div class="marginal">Ce n'est pas la pierre qui fait quelque chose. C'est l'Herba Recursus qui fait — la pierre cadre ce qu'elle fait.</div>
+<div class="pf">Carnet des Herbes et des Passages — Ida Mae Crane · 10–14</div>`
+  },
+
+  /* ── SPREAD 4 : Les Rites 1 & 2 ── */
+  {
+    left: `<div class="sec-title">III. Les Rites</div><p style="font-style:italic;font-size:12px;color:#7A5A40;margin-bottom:14px;line-height:1.7;text-indent:0">Ces rites ne cr&#233;ent rien. Ils r&#233;v&#232;lent ce qui est d&#233;j&#224; l&#224;. La diff&#233;rence est importante et je la r&#233;p&#232;te chaque fois que je l&#39;enseigne.</p><div class="rite-block" style="padding:16px 18px;margin:0 0 12px"><h4 style="font-size:11px;margin-bottom:8px">Rite n&#176;1 &#8212; R&#233;sonance Simple</h4><p class="rite-intro" style="font-size:10.5px;margin-bottom:11px">&#171; Pour sentir si un lieu a de la m&#233;moire. Pas pour changer quoi que ce soit. Juste pour &#233;couter. &#187;</p><span class="prop-label" style="font-size:9.5px;margin:9px 0 4px">Composants</span><p class="prop-text" style="font-size:11px;margin-bottom:7px;line-height:1.72">Une tige s&#233;ch&#233;e d&#39;Herba Recursus. Charbon de pierre noire (demi-cuiller&#233;e). Eau de source froide. Un r&#233;cipient en terre ou en pierre &#8212; jamais de m&#233;tal, jamais d&#39;eau du robinet.</p><span class="prop-label" style="font-size:9.5px;margin:9px 0 4px">D&#233;roulement</span><p class="prop-text" style="font-size:11px;margin-bottom:7px;line-height:1.72">Pr&#233;parer la d&#233;coction sur place si possible. Humecter les mains, ne pas boire. S&#39;asseoir, dos contre un mur porteur, et attendre. Les effets commencent entre vingt minutes et trois heures.</p><span class="prop-label" style="font-size:9.5px;margin:9px 0 4px">Effets attendus</span><p class="prop-text" style="font-size:11px;margin-bottom:7px;line-height:1.72">Pr&#233;sence perceptible dans le lieu pendant deux &#224; huit jours. Parfois des sons &#8212; pas des voix, plut&#244;t des intentions. Des certitudes qui arrivent sans avoir &#233;t&#233; pens&#233;es.</p><p class="warning" style="font-size:10.5px;margin:9px 0 0;padding:9px 12px">Ne jamais pratiquer ce rite dans un lieu o&#249; quelqu&#39;un a disparu si on n&#39;est pas pr&#234;t &#224; entendre. On entend. C&#39;est la promesse du rite, et son co&#251;t.</p></div><div class="marginal" style="font-size:11px">Ce rite est le seul que j&#39;enseigne sans r&#233;serve. Il ne demande rien qu&#39;on ne soit pr&#234;t &#224; rendre.</div><div class="pf">Carnet des Herbes et des Passages &#8212; Ida Mae Crane &#183; 15&#8211;18</div>`,
+
+    right: `<div class="sec-title">III. Les Rites <em style="font-size:10px;letter-spacing:0">(suite)</em></div><div class="rite-block" style="padding:16px 18px;margin:0 0 12px"><h4 style="font-size:11px;margin-bottom:8px">Rite n&#176;2 &#8212; Contact &#224; Travers le Seuil</h4><p class="rite-intro" style="font-size:10.5px;margin-bottom:11px">&#171; Pour parler &#224; travers le seuil. Pas pour ramener. Juste pour parler. &#187;</p><span class="prop-label" style="font-size:9.5px;margin:9px 0 4px">Composants suppl&#233;mentaires</span><p class="prop-text" style="font-size:11px;margin-bottom:7px;line-height:1.72">Un objet m&#233;moire de la personne cherch&#233;e &#8212; quelque chose qu&#39;elle a touch&#233; souvent, sur une longue p&#233;riode. Pas un objet offert ou neuf. Quelque chose d&#39;us&#233; par elle. Le lieu de sa derni&#232;re pr&#233;sence connue, si possible.</p><span class="prop-label" style="font-size:9.5px;margin:9px 0 4px">Ce qu&#39;on re&#231;oit</span><p class="prop-text" style="font-size:11px;margin-bottom:7px;line-height:1.72">Rarement une voix directe. Plus souvent une certitude sur l&#39;&#233;tat de la personne &#8212; vivante ou non, en paix ou non. Les mots arrivent parfois, mais brefs. Des fragments. Assez pour savoir, pas toujours assez pour comprendre.</p><span class="prop-label" style="font-size:9.5px;margin:9px 0 4px">Dur&#233;e</span><p class="prop-text" style="font-size:11px;margin-bottom:7px;line-height:1.72">Variable. Trois heures minimum. Peut durer toute une nuit. On ne contr&#244;le pas la dur&#233;e &#8212; on attend que &#231;a se ferme de l&#39;autre c&#244;t&#233;.</p><p class="warning" style="font-size:10.5px;margin:9px 0 0;padding:9px 12px">Ne jamais utiliser une fausse relique &#8212; un objet qu&#39;on pr&#233;tend &#234;tre de la personne mais qui ne l&#39;est pas. La porte s&#39;ouvre quand m&#234;me. Ce qui entre n&#39;est pas ce qu&#39;on cherchait.</p></div><div class="marginal" style="font-size:11px">Celui-ci, je ne l&#39;enseigne qu&#39;&#224; ceux qui ont d&#233;j&#224; perdu quelqu&#39;un. Les autres ne comprennent pas le poids de la porte.</div><div class="pf">Carnet des Herbes et des Passages &#8212; Ida Mae Crane &#183; 19&#8211;23</div>`
+  },
+
+  /* ── SPREAD 5 : Rite de Rappel + Lois ── */
+  {
+    left: `<div class="sec-title">III. Les Rites — Rite n°3</div>
+<div class="rite-block" style="border-color:#8B3A2A;border-width:1.5px;padding:15px 17px;margin:0 0 11px">
+  <h4 style="color:#8B3A2A;font-size:11px;margin-bottom:8px">Rite n&#176;3 &#8212; Le Rite de Rappel</h4>
+  <p class="rite-intro" style="color:#8B3A2A;font-size:10.5px;margin-bottom:11px">&#171; Pour ramener quelqu&#39;un. Pas seulement parler. Ramener. &#187;</p>
+  <p class="prop-text" style="font-size:11px;margin-bottom:8px;line-height:1.72">Ce rite, je ne l&#39;ai jamais pratiqu&#233; en entier. Ma m&#232;re non plus, &#224; ma connaissance. Nous en avons transmis les fragments tels qu&#39;ils nous ont &#233;t&#233; transmis &#8212; sans certitude que l&#39;ensemble soit complet.</p>
+  <span class="prop-label" style="font-size:9.5px;margin:9px 0 4px">Composants confirm&#233;s</span>
+  <p class="prop-text" style="font-size:11px;margin-bottom:8px;line-height:1.72">Herba Recursus fra&#238;che &#8212; cueillie le jour m&#234;me, clairi&#232;re nord, mars. Trois objets de m&#233;moire authentiques. Lieu de m&#233;moire forte. Nouvelle lune.</p>
+  <span class="prop-label" style="font-size:9.5px;margin:9px 0 4px">L&#39;Ancrage humain &#8212; condition sans alternative</span>
+  <p class="prop-text" style="font-size:11px;margin-bottom:8px;line-height:1.72">Ce rite exige une personne vivante qui choisit librement de tenir le seuil. Ce choix ne peut pas &#234;tre forc&#233;. Elle doit choisir de tenir la porte sans savoir exactement ce qu&#39;elle tient.</p>
+  <p class="warning" style="font-size:10.5px;margin:9px 0 0;padding:9px 12px">Sans ancrage, le rite attire vers l&#39;int&#233;rieur au lieu de ramener vers l&#39;ext&#233;rieur. J&#39;ai vu &#231;a se pr&#233;parer une fois &#8212; j&#39;ai arr&#234;t&#233; avant que &#231;a commence.</p>
+</div>
+<div class="torn" style="font-size:11.5px;padding:11px 14px 13px;margin:0 0 10px">
+  Ce qui suit, je le transmets fragmentaire parce que c&#39;est ainsi que je l&#39;ai re&#231;u. La dur&#233;e est de &#8212; les objets de Samuel doivent &#234;tre plac&#233;s dans un ordre qui &#8212; L&#39;ancrage tient le seuil par &#8212;
+</div>
+<div class="marginal" style="font-size:11.5px;margin:0">Ces pages, je les garde s&#233;par&#233;es. Elias les aura quand ce sera le bon moment.</div>
+<div class="pf">Carnet des Herbes et des Passages — Ida Mae Crane · 24–27</div>`,
+
+    right: `<div class="sec-title">IV. Les Lois du Passage</div>
+<p style="font-style:italic;font-size:12px;color:#7A5A40;margin-bottom:14px;line-height:1.7;text-indent:0">Ma m&#232;re m&#39;a appris sept lois. J&#39;en ai compris cinq avec certitude. Je les transmets telles quelles &#8212; y compris les incompl&#232;tes.</p>
+<div class="law-item" style="margin-bottom:11px">
+  <div class="law-num">I.</div>
+  <div class="law-text" style="font-size:11.5px;line-height:1.72">Ce que tu demandes, tu le payes. Ce n&#39;est pas une punition &#8212; c&#39;est la structure de la chose. La plante donne parce qu&#39;elle se souvient. Se souvenir a un co&#251;t.</div>
+</div>
+<div class="law-item" style="margin-bottom:11px">
+  <div class="law-num">II.</div>
+  <div class="law-text" style="font-size:11.5px;line-height:1.72">Un pont va dans les deux sens. Si tu ouvres un passage, ce qui est de l&#39;autre c&#244;t&#233; peut aussi d&#233;cider de traverser. Ce n&#39;est pas toujours ce que tu cherches qui traverse en premier.</div>
+</div>
+<div class="law-item" style="margin-bottom:11px">
+  <div class="law-num">III.</div>
+  <div class="law-text" style="font-size:11.5px;line-height:1.72">La m&#233;moire d&#39;un lieu est plus forte que la m&#233;moire d&#39;un homme. Le b&#226;timent se souvient quand les hommes ont oubli&#233;. Dans certains b&#226;timents, les rites fonctionnent sans qu&#39;on les aide.</div>
+</div>
+<div class="law-item" style="margin-bottom:11px">
+  <div class="law-num">IV.</div>
+  <div class="law-text" style="font-size:11.5px;line-height:1.72">Ne force jamais quelqu&#39;un &#224; tenir le seuil. Le choix doit &#234;tre libre &#8212; vraiment libre, pas convaincu. Si la personne h&#233;site, elle n&#39;est pas pr&#234;te.</div>
+</div>
+<div class="law-item" style="margin-bottom:11px">
+  <div class="law-num">V.</div>
+  <div class="law-text" style="font-size:11.5px;line-height:1.72">L&#39;intention doit &#234;tre claire, pr&#233;cise, et honn&#234;te. Une intention floue ouvre une porte floue. On ne sait pas ce qui entre.</div>
+</div>
+<div class="law-item" style="margin-bottom:11px">
+  <div class="law-num">VI.</div>
+  <div class="law-text incomplete" style="font-size:11.5px;line-height:1.72">Ma m&#232;re disait quelque chose sur le rapport entre le temps de l&#39;autre c&#244;t&#233; et le temps de ce c&#244;t&#233;-ci. Je n&#39;en ai pas encore compris la pleine mesure. <span style="font-family:'Kalam', cursive;font-size:13px;color:#9A7A50"> &#8212; cherche encore, 1963</span></div>
+</div>
+<div class="law-item" style="margin-bottom:11px">
+  <div class="law-num">VII.</div>
+  <div class="law-text incomplete" style="font-size:11.5px;line-height:1.72">Celle-l&#224;, je l&#39;entends mais je n&#39;en parle pas encore. Elle concerne ce qui reste apr&#232;s le rappel &#8212; ce qui a tenu la porte. <span style="font-family:'Kalam', cursive;font-size:13px;color:#9A7A50"> &#8212; 1967, pas encore</span></div>
+</div>
+<div class="pf">Carnet des Herbes et des Passages &#8212; Ida Mae Crane &#183; 25&#8211;28</div>`
+  },
+
+  /* ── SPREAD 6 : Signe + Note à Elias ── */
+  {
+    left: `<div class="sec-title">Le Signe de Résonance</div>
+<p class="body-text" style="font-size:10.5px;line-height:1.65;margin-bottom:5px">Dans la tradition que ma mère m'a transmise, certains lieux de pratique sont balisés par un signe. Pas pour les identifier aux étrangers — pour boucler le circuit de résonance dans un espace. Ce signe vient de son propre carnet, qui le tenait d'une femme plus ancienne encore.</p>
+<div style="text-align:center;margin:6px 0 4px">
+  <svg width="150" height="120" viewBox="0 0 220 175" xmlns="http://www.w3.org/2000/svg" aria-label="Signe de résonance">
+    <g stroke="#2C1810" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 28 130 Q 24 42 110 36 Q 196 42 192 130"/>
+      <path d="M 28 130 Q 36 124 62 128 L 62 148"/>
+      <path d="M 192 130 Q 184 124 158 128 L 158 148"/>
+      <line x1="48" y1="148" x2="76" y2="148"/>
+      <line x1="144" y1="148" x2="172" y2="148"/>
+      <path d="M 72 122 Q 72 98 110 96 Q 148 98 148 122" stroke-width="1" opacity="0.45"/>
+    </g>
+    <text x="110" y="170" font-family="'Kalam', cursive" font-size="12" fill="#9A7A50" text-anchor="middle" font-style="italic">× 4 — à 87cm du sol</text>
+  </svg>
+</div>
+<p class="body-text" style="font-size:10.5px;line-height:1.65;margin-bottom:5px">Ce signe marque les zones de résonance. Ma mère le traçait à la craie sur les murs, à 87 centimètres du sol. Elle disait que c'était la hauteur du cœur d'un enfant de dix ans. Je n'ai jamais su si c'était la vraie raison ou la raison qu'elle se donnait pour ne pas oublier la hauteur.</p>
+<p class="body-text" style="font-size:10.5px;line-height:1.65;margin-bottom:5px">Il faut le tracer quatre fois dans un espace pour boucler le circuit — aux quatre points cardinaux si possible, sinon aux quatre murs. Pas plus, pas moins. Cinq affaiblit. Trois laisse le circuit ouvert d'un côté. Un espace ouvert d'un côté laisse entrer ce qu'on n'a pas invité.</p>
+<div class="marginal" style="font-size:10px;margin:5px 0">La régularité des intervalles est fonctionnelle — elle indique que quelqu'un a pensé à ce qu'il faisait. Un signe placé à la hâte ne boucle pas.</div>
+<p class="body-text" style="font-size:10.5px;line-height:1.65;margin-bottom:0">Ce signe ne fait rien par lui-même. Il prépare un espace à tenir ce qu'on y demande. Comme on prépare le sol avant de planter. Préparer n'est pas faire. Le signe prépare. Le rite fait.</p>
+<div class="pf">Carnet des Herbes et des Passages — Ida Mae Crane · 29–33</div>`,
+
+    right: `<div class="sec-title" style="font-style:italic">Note à Elias</div>
+<div class="letter" style="font-size:10.5px;line-height:1.62">
+  <p style="font-size:10.5px;margin-bottom:7px">Elias,</p>
+  <p style="font-size:10.5px;line-height:1.62;margin-bottom:7px">Si tu lis ça après ma mort, ne t'inquiète pas pour ce que tu n'as pas encore appris. Ces pratiques-là trouvent leur moment toutes seules. Elles n'ont pas besoin qu'on les presse.</p>
+  <p style="font-size:10.5px;line-height:1.62;margin-bottom:7px">Tu as toujours eu ce regard des gens qui cherchent même quand ils ne savent pas ce qu'ils cherchent. C'est une qualité. C'est aussi une façon de se perdre si on ne fait pas attention à la direction dans laquelle on cherche.</p>
+  <p style="font-size:10.5px;line-height:1.62;margin-bottom:7px">Le rite de rappel — les pages que j'ai arrachées — je ne te les donne pas maintenant. Pas par méfiance. Parce que tu as encore trop de douleur pour tenir le seuil sans trembler. Quand la douleur sera devenue autre chose — de la patience, peut-être — tu trouveras ton chemin vers ce qui manque.</p>
+  <p style="font-size:10.5px;line-height:1.62;margin-bottom:7px">Il y a un enfant qui arrive dans la famille. Samuel. Prends-en soin. Il a ce regard des gens qui trouvent les portes qu'on n'a pas indiquées. Ce n'est pas toujours une bénédiction. Mais quelqu'un doit être là quand une telle personne trouve seule ce qu'elle ne devrait pas trouver seule.</p>
+  <p style="font-size:10.5px;line-height:1.62;margin-bottom:7px"><em>Certaines choses ont un coût. Tu décides si tu peux le payer. Et si tu décides que oui — assure-toi que ta réponse est honnête. Pas courageuse. Honnête. Ce n'est pas la même chose.</em></p>
+</div>
+<div class="signature" style="font-size:11.5px;margin-top:8px">
+  Avec tout ce que j'ai,<br>
+  <em>Ida Mae Crane, Biloxi, 1968</em>
+</div>
+<svg width="100%" viewBox="0 0 280 30" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="margin-top:10px;opacity:0.45">
+  <g stroke="#9A7A50" stroke-width="0.8" fill="none">
+    <line x1="0" y1="15" x2="116" y2="15"/><line x1="164" y1="15" x2="280" y2="15"/>
+    <circle cx="140" cy="15" r="11"/>
+    <circle cx="140" cy="15" r="5.5"/>
+    <circle cx="140" cy="15" r="1.6" fill="#9A7A50"/>
+    <line x1="129" y1="15" x2="123" y2="15"/><line x1="151" y1="15" x2="157" y2="15"/>
+    <line x1="140" y1="4" x2="140" y2="9"/><line x1="140" y1="21" x2="140" y2="26"/>
+  </g>
+</svg>
+<div class="pf">Carnet des Herbes et des Passages — Ida Mae Crane · fin · Biloxi, 1951–1968</div>`
+  }
+
+];
+
+let currentSpread = 0;
+let isOpen = false;
+let isAnimating = false;
+const TOTAL_SPREADS = spreads.length;
+
+const cover         = document.getElementById('cover-container');
+const flipContainer = document.getElementById('flip-container');
+const flipFront     = document.getElementById('flip-front-content');
+const flipBack      = document.getElementById('flip-back-content');
+const leftContent   = document.getElementById('left-content');
+const navPrev       = document.getElementById('nav-prev');
+const navNext       = document.getElementById('nav-next');
+const indicator     = document.getElementById('page-indicator');
+
+function renderSpread(index) {
+  const s = spreads[index];
+  leftContent.innerHTML = s.left;
+  flipFront.innerHTML   = s.right;
+  document.getElementById('pages-stack-content').innerHTML =
+    (index + 1 < TOTAL_SPREADS) ? spreads[index + 1].right : '';
+  if (index + 1 < TOTAL_SPREADS) {
+    flipBack.innerHTML = spreads[index + 1].left;
+  } else {
+    flipBack.innerHTML = '<div class="page-content" style="display:flex;align-items:center;justify-content:center;height:100%;"><div style="font-family:\'IM Fell English SC\',serif;font-size:13px;color:#9A7A50;letter-spacing:3px;text-align:center;">Fin du Carnet</div></div>';
+  }
+  updateNav();
+  updateIndicator();
+}
+
+function updateNav() {
+  navPrev.classList.toggle('hidden', currentSpread <= 0);
+  navNext.classList.toggle('hidden', currentSpread >= TOTAL_SPREADS - 1);
+}
+
+function updateIndicator() {
+  if (!isOpen) { indicator.style.display = 'none'; return; }
+  indicator.style.display = 'block';
+  indicator.textContent = 'Pages ' + (currentSpread * 2 + 2) + '–' + (currentSpread * 2 + 3) + ' / ' + (TOTAL_SPREADS * 2 + 1);
+}
+
+function openBook() {
+  if (isOpen || isAnimating) return;
+  isAnimating = true;
+
+  // Préparer le contenu.
+  leftContent.innerHTML = spreads[0].left;
+  flipFront.innerHTML   = spreads[0].right;
+  document.getElementById('pages-stack-content').innerHTML = (1 < spreads.length) ? spreads[1].right : '';
+  flipBack.innerHTML = (1 < spreads.length) ? spreads[1].left : '';
+
+  // La face ARRIÈRE de la couverture porte le sommaire (page de gauche).
+  // En pivotant, la couverture « devient » la première page — comme un vrai
+  // livre. Tout le reste (left-page réel, pile, flip) reste caché pendant
+  // l'ouverture : aucune superposition possible.
+  document.getElementById('cover-back-content').innerHTML = spreads[0].left;
+  document.getElementById('left-page').style.display   = 'none';
+  document.getElementById('pages-stack').style.display = 'none';
+  flipContainer.style.display = 'none';
+
+  cover.querySelector('.cover-click-hint').style.display = 'none';
+  cover.classList.add('opening');
+
+  setTimeout(function() {
+    // La couverture est repliée à plat. On affiche le vrai livre dessous
+    // (la page de gauche a un contenu identique au dos de la couverture,
+    // donc le remplacement est invisible) puis on retire la couverture.
+    var leftPage = document.getElementById('left-page');
+    var stack = document.getElementById('pages-stack');
+    leftPage.style.display = 'block';
+    stack.style.display = 'block';
+    flipContainer.style.display = 'block';
+    cover.classList.remove('opening');
+    cover.classList.add('opened');
+    cover.style.display = 'none';
+    // léger fondu de la moitié droite, révélée par l'écartement du livre
+    stack.classList.add('revealing');
+    flipContainer.classList.add('revealing');
+    setTimeout(function() {
+      stack.classList.remove('revealing');
+      flipContainer.classList.remove('revealing');
+    }, 460);
+    isOpen = true; isAnimating = false;
+    currentSpread = 0;
+    updateNav();
+    navPrev.classList.add('hidden');
+    navNext.classList.remove('hidden');
+    indicator.style.display = 'block';
+    updateIndicator();
+  }, 1350);
+}
+
+const END_PAGE = '<div class="page-content" style="display:flex;align-items:center;justify-content:center;height:100%;"><div style="font-family:\'IM Fell English SC\',serif;font-size:13px;color:#9A7A50;letter-spacing:3px;text-align:center;">Fin du Carnet</div></div>';
+
+function doFlip(direction) {
+  if (!isOpen || isAnimating) return;
+  if (direction === 'next' && currentSpread >= TOTAL_SPREADS - 1) return;
+  if (direction === 'prev' && currentSpread <= 0) return;
+
+  isAnimating = true;
+  navPrev.classList.add('hidden');
+  navNext.classList.add('hidden');
+  flipContainer.style.transition = 'transform 0.9s cubic-bezier(0.645, 0.045, 0.355, 1.000)';
+
+  if (direction === 'next') {
+    // flip-front shows current right page; flip-back shows next left page.
+    // pages-stack underneath shows the next right page so it appears once the flip lands.
+    flipFront.innerHTML = spreads[currentSpread].right;
+    flipBack.innerHTML  = (currentSpread + 1 < TOTAL_SPREADS) ? spreads[currentSpread + 1].left : END_PAGE;
+    document.getElementById('pages-stack-content').innerHTML =
+      (currentSpread + 1 < TOTAL_SPREADS) ? spreads[currentSpread + 1].right : '';
+    flipContainer.style.transform = 'rotateY(-180deg)';
+    setTimeout(function() {
+      currentSpread++;
+      flipContainer.style.transition = 'none';
+      flipContainer.style.transform = 'rotateY(0deg)';
+      renderSpread(currentSpread);
+      isAnimating = false;
+    }, 920);
+  } else {
+    // Going back: the left page stays visible; the flip element rotates from
+    // 180deg back to 0deg. flip-back (visible at 180deg) must show the previous
+    // right page; flip-front (visible at 0deg) shows the previous right page too.
+    leftContent.innerHTML = spreads[currentSpread - 1].left;
+    flipBack.innerHTML    = spreads[currentSpread - 1].right;
+    flipFront.innerHTML   = spreads[currentSpread - 1].right;
+    document.getElementById('pages-stack-content').innerHTML = spreads[currentSpread].right;
+    flipContainer.style.transition = 'none';
+    flipContainer.style.transform = 'rotateY(180deg)';
+    void flipContainer.offsetWidth;
+    flipContainer.style.transition = 'transform 0.9s cubic-bezier(0.645, 0.045, 0.355, 1.000)';
+    requestAnimationFrame(function() {
+      flipContainer.style.transform = 'rotateY(0deg)';
+    });
+    setTimeout(function() {
+      currentSpread--;
+      flipContainer.style.transition = 'none';
+      flipContainer.style.transform = 'rotateY(0deg)';
+      renderSpread(currentSpread);
+      isAnimating = false;
+    }, 920);
+  }
+}
+
+function flipNext() { doFlip('next'); }
+function flipPrev() { doFlip('prev'); }
+
+cover.addEventListener('click', openBook);
+
+document.addEventListener('keydown', function(e) {
+  if (!isOpen) return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') flipNext();
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   flipPrev();
+});
+
+flipFront.innerHTML   = '';
+flipBack.innerHTML    = '';
+leftContent.innerHTML = '';
+</script>
+</body>
+</html>
